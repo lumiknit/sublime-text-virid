@@ -8,7 +8,9 @@
 	<key>settings</key>
 	<dict>
 		<key>increaseIndentPattern</key>
-		<string>^.*(?>\)\s*:|[^.,:;])\s*$</string>
+		<string>(^.*(\?|:|[\-&lt;&gt;+*/%!^=&amp;|])\s*$)|(^\s*(\||\\).*$)</string>
+    <key>decreaseIndentPattern</key>
+    <string>^\s*(\||\\).*$</string>
 	</dict>
 </dict>
 </plist>
