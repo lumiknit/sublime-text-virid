@@ -8,10 +8,12 @@ variables:
   opc: '[\-<>+*/%!^=&|]'
   nopc: '[^\-<>+*/%!^=&|]'
   op: '{{opc}}+'
-  sep: "[ \t\n\r\\-<>+*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
-  name: "[^ \t\n\r\\-<>+*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]+"
-  m_name: '({{name}}\.)*{{name}}'
-  op_or_name: '({{name}}\.)*({{name}}|{{op}})'
+  sep: "[ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
+  name: "[^ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]+"
+  g_name: '({{name}}\.)*{{name}}'
+  m_name: '({{name}}[.:])*{{name}}'
+  g_op_or_name: '({{name}}\.)*({{name}}|{{op}})'
+  op_or_name: '({{name}}[.:])*({{name}}|{{op}})'
 
 contexts:
   main:
@@ -59,6 +61,11 @@ contexts:
       scope: punctuation.section.args.begin.virid
       push:
         - meta_scope: meta.args.virid
+        - match: '(@?)({{name}})\s*(:)\s*'
+          captures:
+            1: keyword.operator.virid
+            2: entity.name.virid
+            3: punctuation.separator.virid
         - match: ','
           scope: punctuation.separator.virid
         - match: '\)'
@@ -137,8 +144,10 @@ contexts:
       set: local
     - match: ','
       scope: punctuation.separator.virid
-    - match: (?={{m_name}}\s*:)
+    - match: (?=(\*?)({{m_name}})\s*:\s*)
       push:
+        - match: '\*'
+          scope: keyword.operator.virid
         - match: ':'
           scope: punctuation.separator.virid
           set: fn_arg_type
@@ -395,7 +404,7 @@ contexts:
       pop: true
 
   module_name:
-    - match: (?={{m_name}})
+    - match: (?={{g_name}})
       push:
         - meta_scope: meta.name.virid
         - match: \$
@@ -408,7 +417,7 @@ contexts:
           scope: entity.name.namespace.virid
           pop: true
   type_name:
-    - match: (?={{m_name}})
+    - match: (?={{g_name}})
       push:
         - meta_scope: meta.name.virid
         - match: '\$'
@@ -421,11 +430,9 @@ contexts:
           scope: storage.type.virid
           pop: true
   def_name:
-    - match: (?={{op_or_name}})
+    - match: (?={{g_op_or_name}})
       push:
         - meta_scope: meta.name.def.virid
-        - match: '\$'
-          scope: entity.name.namespace.virid
         - match: ({{name}})(\.)(?={{name}}|{{op}})
           captures:
             1: entity.name.namespace.virid
@@ -440,7 +447,7 @@ contexts:
     - match: (?={{m_name}})
       push:
         - meta_scope: meta.name.virid
-        - match: ({{name}})(\.)(?={{name}})
+        - match: ({{name}})([.:])(?={{name}})
           captures:
             1: entity.name.namespace.virid
             2: punctuation.accessor.virid
@@ -464,6 +471,8 @@ contexts:
           scope: entity.name.virid
           pop: true
   operator:
+    - match: '@'
+      scope: keyword.operator.virid
     - match: '{{op}}'
       scope: keyword.operator.virid
   argument:
