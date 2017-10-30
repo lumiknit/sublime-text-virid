@@ -144,9 +144,9 @@ contexts:
       set: local
     - match: ','
       scope: punctuation.separator.virid
-    - match: (?=(\*?)({{m_name}})\s*:\s*)
+    - match: (?=([@=]?)({{m_name}})\s*:\s*)
       push:
-        - match: '\*'
+        - match: '[@=]'
           scope: keyword.operator.virid
         - match: ':'
           scope: punctuation.separator.virid
@@ -156,6 +156,8 @@ contexts:
   fn_arg_type:
     - match: (?=\)|,)
       pop: true
+    - match: '@'
+      scope: keyword.operator.virid
     - match: '\['
       scope: punctuation.section.list.begin.virid
       push:
@@ -201,21 +203,21 @@ contexts:
     - match: '#_'
       scope: keyword.control.preprocessor.begin.virid
       push:
+        - match: ';|$'
+          scope: keyword.control.preprocessor.end.virid
+          pop: true
         - match: '"'
           scope: punctuation.definition.string.begin.virid
-          set:
+          push:
             - meta_scope: string.quoted.filename.virid
             - match: \\.
               scope: constant.character.escape.virid
             - match: '"'
               scope: punctuation.definition.string.end.virid
               pop: true
-        - match: '\s*'
-          set:
-            - include: module_name
-            - match: '\s*;?'
-              scope: keyword.control.preprocessor.end.virid
-              pop: true
+        
+        - include: module_name
+        
 
   comments:
     - match: '#{'
@@ -390,14 +392,14 @@ contexts:
       scope: constant.numeric.virid
   quoted_string:
     - meta_scope: string.quoted.single.virid
-    - match: \\.
+      match: \\.
       scope: constant.character.escape.virid
     - match: "'"
       scope: punctuation.definition.string.end.virid
       pop: true
   double_quoted_string:
     - meta_scope: string.quoted.double.virid
-    - match: \\.
+      match: \\.
       scope: constant.character.escape.virid
     - match: '"'
       scope: punctuation.definition.string.end.virid
@@ -476,7 +478,9 @@ contexts:
     - match: '{{op}}'
       scope: keyword.operator.virid
   argument:
-    - match: '{{name}}'
-      scope: variable.parameter.virid
+    - match: '([@=])?({{name}})'
+      captures:
+        1: keyword.operator.virid
+        2: variable.parameter.virid
 
 
