@@ -158,6 +158,8 @@ contexts:
       pop: true
     - match: '@'
       scope: keyword.operator.virid
+    - match: '\$'
+      scope: keyword.operator.virid
     - match: '\['
       scope: punctuation.section.list.begin.virid
       push:
@@ -312,6 +314,9 @@ contexts:
         1: keyword.operator.virid
         2: punctuation.section.args.begin.virid
       push:
+        - match: '\)\s*:'
+          scope: punctuation.section.args.end.virid
+          set: type_local
         - match: '\)'
           scope: punctuation.section.args.end.virid
           set: local
@@ -322,6 +327,9 @@ contexts:
               set: fn_arg_type
             - include: argument
         - include: argument
+    - match: '\$\s*:'
+      scope: keyword.operator.virid
+      push: type_local
 
 
   pattern_matching:
@@ -409,8 +417,6 @@ contexts:
     - match: (?={{g_name}})
       push:
         - meta_scope: meta.name.virid
-        - match: \$
-          scope: entity.name.namespace.virid
         - match: ({{name}})(\.)(?={{name}})
           captures:
             1: entity.name.namespace.virid
@@ -422,8 +428,6 @@ contexts:
     - match: (?={{g_name}})
       push:
         - meta_scope: meta.name.virid
-        - match: '\$'
-          scope: entity.name.namespace.virid
         - match: ({{name}})(\.)(?={{name}})
           captures:
             1: entity.name.namespace.virid
