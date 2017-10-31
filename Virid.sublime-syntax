@@ -263,17 +263,18 @@ contexts:
       pop: true
     - include: whitespace
     - include: comments
-    - match: '~\s*'
-      scope: keyword.operator.virid
+    - match: '(=)(?!{{opc}})'
+      captures:
+        1: keyword.operator.virid
       push: local_rhs
-    - match: (?=.*?{{nopc}}={{nopc}}.*$)
+    - match: (?=.*?{{nopc}}=(?!{{opc}}).*$)
       push: local_lhs
     - match: (?=.+$)
       set: local_return
 
   local_lhs:
     - meta_scope: meta.local.lhs.virid
-    - match: '=(?={{nopc}})'
+    - match: '=(?!{{opc}})'
       scope: keyword.operator.define.virid
       set: local_rhs
     - include: name
@@ -284,8 +285,8 @@ contexts:
       pop: true
     - match: ','
       scope: punctuation.separator.virid
-      set: local_line
-    - match: ';|$'
+      pop: true
+    - match: ',|;|$'
       scope: punctuation.terminator.virid
       pop: true
     - include: local_expr
@@ -351,9 +352,7 @@ contexts:
         push: local
   pm_local_first:
     - meta_scope: meta.pm.first.virid
-    - match: ';.*'
-      scope: invalid.virid
-    - match: ',|$'
+    - match: '\s*(;|$)'
       scope: punctuation.separator.virid
       set: local
     - include: whitespace
