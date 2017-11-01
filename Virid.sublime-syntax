@@ -32,22 +32,33 @@ contexts:
     - match: '\s+'
       scope: meta.blank.virid
     - include: comments
+    - match: \|
+      scope: keyword.control.virid, punctuation.separator.virid
+      set: type_block
     - match: (?=.)
-      set: type_local
+      set: type_line
   type_local:
     - match: ','
-      scope: punctuation.terminator.virid
-      set: type_local_with_spaces
-    - match: ';'
-      scope: punctuation.terminator.virid
-      pop: true
+      scope: punctuation.separator.virid
     - match: '\s*$'
       scope: meta.linebreak.virid
-      pop: true
     - match: '\s+'
       scope: meta.blank.virid
     - include: comments
     - include: type_local_item
+  type_block:
+    - match: \|
+      scope: keyword.control.virid, punctuation.separator.virid
+      set: type_block
+    - match: \\
+      scope: keyword.control.virid, punctuation.separator.virid
+      set: type_line
+    - include: type_local
+  type_line:
+    - match: '\s*$'
+      scope: meta.linebreak.virid
+      pop: true
+    - include: type_local
   type_local_item:
     - match: '\['
       scope: punctuation.section.list.begin.virid
@@ -265,17 +276,17 @@ contexts:
     - include: comments
     - match: '(=)(?!{{opc}})'
       captures:
-        1: keyword.operator.virid
+        1: keyword.operator.let.virid
       push: local_rhs
-    - match: (?=.*?{{nopc}}=(?!{{opc}}).*$)
-      push: local_lhs
+    #- match: (?=.*?{{nopc}}=(?!{{opc}}).*$)
+    #  push: local_lhs
     - match: (?=.+$)
       set: local_return
 
   local_lhs:
     - meta_scope: meta.local.lhs.virid
     - match: '=(?!{{opc}})'
-      scope: keyword.operator.define.virid
+      scope: keyword.operator.let.virid
       set: local_rhs
     - include: name
 
@@ -283,6 +294,9 @@ contexts:
     - meta_scope: meta.local.return.virid
     - match: '(?=\]|\)|\}|\\|\|{{nopc}})'
       pop: true
+    - match: '=(?!{{opc}})'
+      scope: keyword.operator.let
+      set: local_rhs
     - match: ','
       scope: punctuation.separator.virid
       pop: true
@@ -362,6 +376,8 @@ contexts:
     - match: '\('
       scope: punctuation.section.paren.begin.virid
       push:
+        - match: ','
+          scope: punctuation.separator.virid
         - match: '\)'
           scope: punctuation.section.paren.end.virid
           pop: true
@@ -370,6 +386,8 @@ contexts:
     - match: '\['
       scope: punctuation.section.list.begin.virid
       push:
+        - match: ','
+          scope: punctuation.separator.virid
         - match: '\]'
           scope: punctuation.section.list.end.virid
           pop: true
