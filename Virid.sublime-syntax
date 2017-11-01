@@ -192,6 +192,9 @@ contexts:
     - include: type_name
 
   global_definition:
+    - match: \$
+      scope: keyword.operator.local.virid
+      push: local
     - match: (?={{m_name}})
       push:
         - include: global_type_n
@@ -216,7 +219,7 @@ contexts:
     - match: '#_'
       scope: keyword.control.preprocessor.begin.virid
       push:
-        - match: ';|$'
+        - match: ',|$'
           scope: keyword.control.preprocessor.end.virid
           pop: true
         - match: '"'
@@ -270,7 +273,7 @@ contexts:
   local_line:
     - match: '(?=\]|\)|\}|\\|\|{{nopc}})'
       pop: true
-    - match: ';'
+    - match: ','
       pop: true
     - include: whitespace
     - include: comments
@@ -278,8 +281,6 @@ contexts:
       captures:
         1: keyword.operator.let.virid
       push: local_rhs
-    #- match: (?=.*?{{nopc}}=(?!{{opc}}).*$)
-    #  push: local_lhs
     - match: (?=.+$)
       set: local_return
 
@@ -300,7 +301,7 @@ contexts:
     - match: ','
       scope: punctuation.separator.virid
       pop: true
-    - match: ',|;|$'
+    - match: ',|$'
       scope: punctuation.terminator.virid
       pop: true
     - include: local_expr
@@ -309,19 +310,17 @@ contexts:
     - meta_scope: meta.local.rhs.virid
     - match: '(?=\]|\)|\}|\\|\|{{nopc}})'
       pop: true
-    - match: ';'
-      scope: punctuation.terminator.virid
-      pop: true
     - match: ',|$'
       scope: punctuation.separator.virid
-      pop: true
+      set: local_rhs_break
     - include: local_expr
-
-  block_local:
-    - match: '[.;]'
-      scope: punctuation.terminator.virid
+  local_rhs_break:
+    - match: (?!\s)
       pop: true
-    - include: local_expr
+    - match: \s*$
+      scope: meta.linebreak.virid
+    - match: \s+
+      scope: meta.whitespace.virid
 
   lambda:
     - match: '(\$)(\()'
@@ -366,13 +365,14 @@ contexts:
         push: local
   pm_local_first:
     - meta_scope: meta.pm.first.virid
-    - match: '\s*(;|$)'
+    - match: '\s*(,|$)'
       scope: punctuation.separator.virid
       set: local
     - include: whitespace
     - include: local_expr
 
   local_paren:
+    - meta_scope: meta.paren.virid
     - match: '\('
       scope: punctuation.section.paren.begin.virid
       push:
@@ -383,6 +383,7 @@ contexts:
           pop: true
         - include: local_expr
   local_list:
+    - meta_scope: meta.list.virid
     - match: '\['
       scope: punctuation.section.list.begin.virid
       push:
