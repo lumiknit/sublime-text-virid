@@ -1,0 +1,111 @@
+%YAML 1.2
+---
+name: ViridXLisp
+file_extensions: [vrdxl, viridxl]
+scope: source.viridxl
+variables:
+  num: '[0-9]'
+  name: "[^ \t\n\r@\\[\\](){}:?'\"\\\\$#]+"
+  sep: "[ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
+
+contexts:
+  main:
+    - include: expr
+
+  expr:
+    - include: comments
+    - include: constants
+    - include: special-list
+    - include: simple-list
+    - include: data-list
+
+  comments:
+    - match: '#'
+      scope: punctuation.definition.comment.line.viridxl
+      push:
+        - meta_scope: comment.line.viridxl
+        - match: $
+          pop: true
+
+  constants:
+    - match: "'"
+      scope: punctuation.definition.string.begin.viridxl
+      push: quoted_string
+    - match: '"'
+      scope: punctuation.definition.string.begin.viridxl
+      push: double_quoted_string
+    # Base
+    - match: -?0x[0-9a-fA-F]+
+      scope: constant.numeric.hex.viridxl
+    - match: -?0o[0-7]+
+      scope: constant.numeric.oct.viridxl
+    - match: -?0q[0-3]+
+      scope: constant.numeric.qud.viridxl
+    - match: -?0b[01]+
+      scope: constant.numeric.bin.viridxl
+    # Float
+    - match: -?[0-9]+\.[0-9]+
+      scope: constant.numeric.viridxl
+    # Integer
+    - match: -?[0-9]+
+      scope: constant.numeric.viridxl
+    # Nil
+    - match: \[\s*\]
+      scope: constant.other.viridxl
+    # Bool
+    - match: ':[01]'
+      scope: constant.language.viridxl
+  quoted_string:
+    - meta_scope: string.quoted.single.viridxl
+      match: \\.
+      scope: constant.character.escape.viridxl
+    - match: "'"
+      scope: punctuation.definition.string.end.viridxl
+      pop: true
+  double_quoted_string:
+    - meta_scope: string.quoted.double.viridxl
+      match: \\.
+      scope: constant.character.escape.viridxl
+    - match: '"'
+      scope: punctuation.definition.string.end.viridxl
+      pop: true
+
+  special-list:
+    - match: \{
+      scope: punctuation.section.special.begin.viridxl
+      push: special-list-first
+  special-list-first:
+    - match: '{{name}}'
+      scope: keyword.control.viridxl
+      set: special-list-contents
+    - include: simple-list-contents
+  special-list-contents:
+    - match: \}
+      scope: punctuation.section.special.end.viridxl
+      pop: true
+    - include: expr
+
+  simple-list:
+    - match: \(
+      scope: punctuation.section.s-expr.begin.viridxl
+      push: simple-list-first
+  simple-list-first:
+    - match: '{{name}}'
+      scope: entity.name.function.viridxl
+      set: simple-list-contents
+    - include: simple-list-contents
+  simple-list-contents:
+    - match: \)
+      scope: punctuation.section.s-expr.end.viridxl
+      pop: true
+    - include: expr
+
+  data-list:
+    - match: \[
+      scope: punctuation.section.list.begin.viridxl
+      push:
+        - match: \]
+          scope: punctuation.section.list.end.viridxl
+          pop: true
+        - include: expr
+
