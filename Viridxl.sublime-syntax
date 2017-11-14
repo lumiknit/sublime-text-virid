@@ -15,6 +15,7 @@ contexts:
   expr:
     - include: comments
     - include: constants
+    - include: name
     - include: special-list
     - include: simple-list
     - include: data-list
@@ -69,6 +70,9 @@ contexts:
     - match: '"'
       scope: punctuation.definition.string.end.viridxl
       pop: true
+  name:
+    - match: '{{name}}'
+      scope: variable.viridxl
 
   special-list:
     - match: \{
