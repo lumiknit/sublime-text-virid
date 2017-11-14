@@ -78,7 +78,7 @@ contexts:
     - match: '{{name}}'
       scope: keyword.control.viridxl
       set: special-list-contents
-    - include: simple-list-contents
+    - include: special-list-contents
   special-list-contents:
     - match: \}
       scope: punctuation.section.special.end.viridxl
