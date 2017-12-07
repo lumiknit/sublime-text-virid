@@ -4,12 +4,15 @@ name: Virid
 file_extensions: [vrd, virid]
 scope: source.virid
 variables:
+  white: "[ \t\n\r]"
   num: '[0-9]'
   opc: '[\-<>+*/%!^=&|]'
   nopc: '[^\-<>+*/%!^=&|]'
   op: '{{opc}}+'
+  sep_w: "[\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
   sep: "[ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
-  name: "[^ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]+"
+  namec: "[^ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
+  name: "{{namec}}+"
   g_name: '({{name}}\.)*{{name}}'
   m_name: '({{name}}[.:])*{{name}}'
   g_op_or_name: '({{name}}\.)*({{name}}|{{op}})'
@@ -17,223 +20,202 @@ variables:
 
 contexts:
   main:
-    - include: global
+    - include: global_block
 
-  global:
-    - include: preprocessor
+  # Block
+  global_block:
+    - include: block_e
+    - match: "(?=.)"
+      push: line
+  block:
+    - include: block_e
+    - match: "(?=.)"
+      set: line
+  block_e:
+    - meta_scope: meta.block.virid
+    - include: whitespace
     - include: comments
-    - include: global_definition
-
-
-
-  type_local_with_spaces:
-    - match: '\s*$'
-      scope: meta.linebreak.virid
-    - match: '\s+'
-      scope: meta.blank.virid
-    - include: comments
-    - match: \|
-      scope: keyword.control.virid, punctuation.separator.virid
-      set: type_block
-    - match: (?=.)
-      set: type_line
-  type_local:
-    - match: ','
-      scope: punctuation.separator.virid
-    - match: '\s*$'
-      scope: meta.linebreak.virid
-    - match: '\s+'
-      scope: meta.blank.virid
-    - include: comments
-    - include: type_local_item
-  type_block:
-    - match: \|
-      scope: keyword.control.virid, punctuation.separator.virid
-      set: type_block
-    - match: \\
-      scope: keyword.control.virid, punctuation.separator.virid
-      set: type_line
-    - include: type_local
-  type_line:
-    - match: '\s*$'
-      scope: meta.linebreak.virid
-      pop: true
-    - include: type_local
-  type_local_item:
-    - match: '\['
-      scope: punctuation.section.list.begin.virid
+    - include: annotation
+    - match: "(?=[^$@#]*(?<!{{opc}})::(?!{{opc}}))"
       push:
-        - meta_scope: meta.list.virid
-        - match: '\]'
-          scope: punctuation.section.list.end.virid
-          pop: true
-        - include: type_local_item
-    - match: '\('
-      scope: punctuation.section.args.begin.virid
-      push:
-        - meta_scope: meta.args.virid
-        - match: '(@?)({{name}})\s*(:)\s*'
-          captures:
-            1: keyword.operator.virid
-            2: entity.name.virid
-            3: punctuation.separator.virid
-        - match: ','
-          scope: punctuation.separator.virid
-        - match: '\)'
-          scope: punctuation.section.args.end.virid
-          pop: true
-        - include: type_local_item
-    - include: type_name
-
-  global_type_n:
-    - include: global_type_n1
-  global_type_n1:
-    - match: (?={{m_name}}\s*:)
-      set: global_type_n2
-  global_type_n2:
-    - match: (?=:)
-      set: global_type_n3
-    - meta_scope: meta.definition.type.virid
-    - include: type_name
-  global_type_n3:
-    - match: ':'
-      scope: punctuation.separator.virid
-      set: type_local_with_spaces
-
-  global_type_a:
-    - include: global_type_a1
-  global_type_a1:
-    - match: (?={{m_name}}\s*\(.*?\)\s*:)
-      set: global_type_a2
-  global_type_a2:
-    - match: (?=\()
-      set: global_type_a3
-    - meta_scope: meta.definition.type.virid
-    - include: type_name
-  global_type_a3:
-    - match: \(
-      scope: punctuation.section.args.begin.virid
-      set: global_type_a4
-  global_type_a4:
-    - match: (\))\s*(:)
+        - meta_scope: meta.lhs.name.virid
+        - match: '\.'
+          scope: punctuation.accessor.virid
+          push: type_name
+        - match: (?={{namec}})
+          push: type_name
+        - match: (?=.)
+          set: type_args
+    - match: "[ \t]*({{g_name}})\\s*(:?=)(?!{{opc}})"
       captures:
-        1: punctuation.section.args.end.virid
-        2: punctuation.separator.virid
-      set: type_local_with_spaces
-    - match: ','
-      scope: punctuation.separator.virid
-    - include: argument
-
-  global_value:
-    - include: global_value1
-  global_value1:
-    - match: (?={{m_name}}\s*)
-      set: global_value2
-  global_value2:
-    - meta_scope: meta.definition.value.virid
-    - include: name
-    - match: (?=.)
-      set: local
-
-  global_fn:
-    - include: global_fn1
-  global_fn1:
-    - match: (?={{op_or_name}}\s*\()
-      set: global_fn2
-  global_fn2:
-    - match: (?=\()
-      set: global_fn3
-    - meta_scope: meta.definition.function.virid
-    - include: def_name
-  global_fn3:
-    - match: '\('
-      scope: punctuation.section.args.begin.virid
-      set: global_fn4
-  global_fn4:
-    - match: '\)'
-      scope: punctuation.section.args.end.virid
-      set: local
-    - match: ','
-      scope: punctuation.separator.virid
-    - match: (?=([@=]?)({{m_name}})\s*:\s*)
+        1: variable.virid
+        3: keyword.operator.virid
+    - match: "(?=[^$@#]*(?<!{{opc}}):?=(?!{{opc}}))"
       push:
-        - match: '[@=]'
-          scope: keyword.operator.virid
-        - match: ':'
-          scope: punctuation.separator.virid
-          set: fn_arg_type
-        - include: argument
-    - include: argument
-  fn_arg_type:
-    - match: (?=\)|,)
+        - meta_scope: meta.lhs.name.virid
+        - match: '\('
+          scope: punctuation.section.group.begin.virid
+          push:
+            - match: '\)'
+              scope: punctuation.section.group.end.virid
+              set: fn_args
+            - match: ':'
+              scope: punctuation.separator.type.virid
+              push: type_notation
+            - match: (?={{namec}})
+              push: fn_name
+        - match: (?={{namec}})
+          push: fn_name
+        - match: (?=.)
+          set: fn_args
+
+  type_args:
+    - include: comments
+    - meta_scope: meta.type.args.virid
+    - match: "::(?!{{opc}})"
+      scope: keyword.operator.virid
+      set: type_block
+    - match: (?={{namec}})
+      push: argument
+  fn_args:
+    - include: comments
+    - meta_scope: meta.function.args.virid
+    - match: ":?=(?!{{opc}})"
+      scope: keyword.operator.virid
       pop: true
-    - match: '@'
-      scope: keyword.operator.virid
-    - match: '\$'
-      scope: keyword.operator.virid
-    - match: '\['
-      scope: punctuation.section.list.begin.virid
-      push:
-        - meta_scope: meta.list.virid
-        - match: '\]'
-          scope: punctuation.section.list.end.virid
-          pop: true
-        - include: fn_arg_type
     - match: '\('
-      scope: punctuation.section.args.begin.virid
+      scope: punctuation.section.group.begin.virid
       push:
-        - meta_scope: meta.args.virid
-        - match: ','
-          scope: punctuation.separator.virid
         - match: '\)'
-          scope: punctuation.section.args.end.virid
+          scope: punctuation.section.group.end.virid
           pop: true
-        - include: fn_arg_type
-    - include: type_name
+        - match: ':'
+          scope: punctuation.separator.type.virid
+          push: type_notation
+        - match: (?={{namec}})
+          push: argument
+    - match: (?={{namec}})
+      push: argument
 
-  global_definition:
-    - match: \$
-      scope: keyword.operator.local.virid
-      push: local
-    - match: (?={{m_name}})
+  line:
+    - include: comments
+    - meta_scope: meta.line.virid
+    - match: "[ \t]*;[ \t]*\n"
+      scope: punctuation.join.virid
+    - match: "[ \t]*$"
+      scope: meta.linebreak.virid
+      pop: true
+    - include: match
+    - include: lambda
+    - include: whitespace
+    - include: operator
+    - include: constants
+
+  type_notation:
+    - meta_scope: meta.type.virid
+    - match: '_?[0-9]+'
+      scope: constant.language.generic.virid
+    - match: "\\("
+      scope: punctuation.section.group.begin.virid
       push:
-        - include: global_type_n
-        - include: global_type_a
-        - include: global_fn
-        - include: global_value
-        - match: (?=.?)
+        - match: "\\)"
+          scope: punctuation.section.group.end.virid
           pop: true
-    - match: (?={{op_or_name}})
-      push:
-        - include: global_fn
+        - include: type_notation
+    - match: (?={{namec}})
+      push: type_name
+    - match: ";[ \t]*\n"
+      scope: punctuation.join.virid
+    - match: (?![ \t])
+      pop: true
 
-  preprocessor:
-    - match: '#_\('
-      scope: keyword.control.preprocessor.begin.virid
+  type_block:
+    - meta_scope: meta.type.block.virid
+    - match: '\|[ \t\r\n,;]*'
+      scope: keyword.control.virid
+      push: type_line_first
+    - match: '\\[ \t\r\n,;]*'
+      scope: keyword.control.virid
+      set: type_line_first
+  type_line_first:
+    - meta_scope: meta.type.line.first.virid
+    - match: '\.'
+      scope: punctuation.accessor.virid
+    - match: (?={{namec}})
+      push: fn_name
+    - match: "[ \t]*;[ \t]*\n"
+      scope: punctuation.join.virid
+      set: type_line
+    - match: "[ \t]*;[ \t]*"
+      scope: punctuation.join.virid
+      set: type_line
+    - match: (?=.)
+      set: type_line
+  type_line:
+    - meta_scope: meta.type.line.virid
+    - match: '\('
+      scope: punctuation.section.group.begin.virid
       push:
-        - meta_scope: meta.preprocessor.module.virid
         - match: '\)'
-          scope: keyword.control.preprocessor.end.virid
+          scope: punctuation.section.group.end.virid
           pop: true
-        - include: module_name
-    - match: '#_'
-      scope: keyword.control.preprocessor.begin.virid
+        - include: type_notation
+    - match: (?={{namec}})
+      push: type_name
+    - match: "[ \t]*;[ \t]*\n"
+      scope: punctuation.join.virid
+    - match: (?![ \t])
+      pop: true
+
+  lambda:
+    - match: '\$'
+      scope: keyword.control.virid
+      push: fn_args
+
+  match:
+    - match: '\?'
+      scope: keyword.control.virid, keyword.operator.virid
+    - match: '(\||\\)(?!{{opc}})'
+      scope: keyword.control.virid, keyword.operator.virid
       push:
-        - match: ',|$'
-          scope: keyword.control.preprocessor.end.virid
+        - match: '=>'
+          scope: keyword.control.virid, keyword.operator.virid
           pop: true
+        - include: line
+    - match: '\\>(?!{{opc}})'
+      scope: keyword.control.virid, keyword.operator.virid
+
+  # Annotaiton
+  annotation:
+    - match: '@@'
+      scope: keyword.control.preprocessor.virid
+      push:
+        - meta_scope: meta.module.virid
+        - include: whitespace
+        - match: (?={{name}})
+          set: module_name
+    - match: '@'
+      scope: keyword.control.preprocessor.virid
+      push:
+        - meta_scope: meta.module.virid
+        - include: whitespace
         - match: '"'
           scope: punctuation.definition.string.begin.virid
-          push:
-            - meta_scope: string.quoted.filename.virid
-            - match: \\.
-              scope: constant.character.escape.virid
-            - match: '"'
-              scope: punctuation.definition.string.end.virid
-              pop: true
-        
-        - include: module_name
-        
+          set: double_quoted_string
+        - match: '='
+          scope: keyword.control.preprocessor.virid
+          set: module_name
+        - match: '(?={{namec}})'
+          push: module_name
+  module_name:
+    - meta_scope: meta.name.virid
+    - match: ({{name}})(\.)(?={{name}})
+      captures:
+        1: entity.name.namespace.virid
+        2: punctuation.accessor.virid
+    - match: '{{name}}'
+      scope: entity.name.namespace.virid
+      pop: true
 
   comments:
     - match: '#{'
@@ -255,144 +237,6 @@ contexts:
       scope: meta.linebreak.virid
     - match: '\s+'
       scope: meta.blank.virid
-
-  local:
-    - meta_scope: meta.local.virid
-    - include: local_line
-
-  local_expr:
-    - include: comments
-    - include: constants
-    - include: lambda
-    - include: pattern_matching
-    - include: local_paren
-    - include: local_list
-    - include: name
-    - include: operator
-
-  local_line:
-    - match: '(?=\]|\)|\}|\\|\|{{nopc}})'
-      pop: true
-    - match: ','
-      pop: true
-    - include: whitespace
-    - include: comments
-    - match: '(=)(?!{{opc}})'
-      captures:
-        1: keyword.operator.let.virid
-      push: local_rhs
-    - match: (?=.+$)
-      set: local_return
-
-  local_lhs:
-    - meta_scope: meta.local.lhs.virid
-    - match: '=(?!{{opc}})'
-      scope: keyword.operator.let.virid
-      set: local_rhs
-    - include: name
-
-  local_return:
-    - meta_scope: meta.local.return.virid
-    - match: '(?=\]|\)|\}|\\|\|{{nopc}})'
-      pop: true
-    - match: '=(?!{{opc}})'
-      scope: keyword.operator.let
-      set: local_rhs
-    - match: ','
-      scope: punctuation.separator.virid
-      pop: true
-    - match: ',|$'
-      scope: punctuation.terminator.virid
-      pop: true
-    - include: local_expr
-
-  local_rhs:
-    - meta_scope: meta.local.rhs.virid
-    - match: '(?=\]|\)|\}|\\|\|{{nopc}})'
-      pop: true
-    - match: ',|$'
-      scope: punctuation.separator.virid
-      set: local_rhs_break
-    - include: local_expr
-  local_rhs_break:
-    - match: (?!\s)
-      pop: true
-    - match: \s*$
-      scope: meta.linebreak.virid
-    - match: \s+
-      scope: meta.whitespace.virid
-
-  lambda:
-    - match: '(\$)(\()'
-      captures:
-        1: keyword.operator.virid
-        2: punctuation.section.args.begin.virid
-      push:
-        - match: '\)\s*:'
-          scope: punctuation.section.args.end.virid
-          set: type_local
-        - match: '\)'
-          scope: punctuation.section.args.end.virid
-          set: local
-        - match: (?={{m_name}}\s*:)
-          push:
-            - match: ':'
-              scope: punctuation.separator.virid
-              set: fn_arg_type
-            - include: argument
-        - include: argument
-    - match: '\$\s*:'
-      scope: keyword.operator.virid
-      push: type_local
-
-
-  pattern_matching:
-    - match: '\?\??'
-      scope: keyword.control.virid, punctuation.separator.virid
-      push:
-      - include: whitespace
-      - include: comments
-      - match: '\\\\'
-        scope: keyword.control.virid, punctuation.terminator.virid
-        pop: true
-      - match: '\\'
-        scope: keyword.control.virid, punctuation.separator.virid
-        set: local
-      - match: '\|(?!opc)'
-        scope: keyword.control.virid, punctuation.separator.virid
-        push: pm_local_first
-      - match: (?=.)
-        push: local
-  pm_local_first:
-    - meta_scope: meta.pm.first.virid
-    - match: '\s*(,|$)'
-      scope: punctuation.separator.virid
-      set: local
-    - include: whitespace
-    - include: local_expr
-
-  local_paren:
-    - meta_scope: meta.paren.virid
-    - match: '\('
-      scope: punctuation.section.paren.begin.virid
-      push:
-        - match: ','
-          scope: punctuation.separator.virid
-        - match: '\)'
-          scope: punctuation.section.paren.end.virid
-          pop: true
-        - include: local_expr
-  local_list:
-    - meta_scope: meta.list.virid
-    - match: '\['
-      scope: punctuation.section.list.begin.virid
-      push:
-        - match: ','
-          scope: punctuation.separator.virid
-        - match: '\]'
-          scope: punctuation.section.list.end.virid
-          pop: true
-        - include: local_expr
 
   constants:
     - match: "'"
@@ -431,42 +275,33 @@ contexts:
       scope: punctuation.definition.string.end.virid
       pop: true
 
-  module_name:
-    - match: (?={{g_name}})
-      push:
-        - meta_scope: meta.name.virid
-        - match: ({{name}})(\.)(?={{name}})
-          captures:
-            1: entity.name.namespace.virid
-            2: punctuation.accessor.virid
-        - match: '{{name}}'
-          scope: entity.name.namespace.virid
-          pop: true
   type_name:
-    - match: (?={{g_name}})
-      push:
-        - meta_scope: meta.name.virid
-        - match: ({{name}})(\.)(?={{name}})
-          captures:
-            1: entity.name.namespace.virid
-            2: punctuation.accessor.virid
-        - match: '{{name}}'
-          scope: storage.type.virid
-          pop: true
-  def_name:
-    - match: (?={{g_op_or_name}})
-      push:
-        - meta_scope: meta.name.def.virid
-        - match: ({{name}})(\.)(?={{name}}|{{op}})
-          captures:
-            1: entity.name.namespace.virid
-            2: punctuation.accessor.virid
-        - match: '{{name}}'
-          scope: entity.name.virid
-          pop: true
-        - match: '{{op}}'
-          scope: keyword.operator.virid
-          pop: true
+    - meta_scope: meta.name.virid
+    - match: ({{name}})(\.)(?={{name}})
+      captures:
+        1: entity.name.namespace.virid
+        2: punctuation.accessor.virid
+    - match: '{{name}}'
+      scope: storage.type.virid
+      pop: true
+  fn_name:
+    - meta_scope: meta.name.virid
+    - match: ({{name}})(\.)(?={{name}})
+      captures:
+        1: entity.name.namespace.virid
+        2: punctuation.accessor.virid
+    - match: '{{name}}'
+      scope: entity.name.function.virid
+      pop: true
+  var_name:
+    - meta_scope: meta.name.virid
+    - match: ({{name}})(\.)(?={{name}})
+      captures:
+        1: entity.name.namespace.virid
+        2: punctuation.accessor.virid
+    - match: '{{name}}'
+      scope: variable.virid
+      pop: true
   name:
     - match: (?={{m_name}})
       push:
@@ -495,14 +330,10 @@ contexts:
           scope: entity.name.virid
           pop: true
   operator:
-    - match: '@'
-      scope: keyword.operator.virid
     - match: '{{op}}'
       scope: keyword.operator.virid
   argument:
-    - match: '([@=])?({{name}})'
-      captures:
-        1: keyword.operator.virid
-        2: variable.parameter.virid
-
-
+    - meta_scope: meta.name.virid
+    - match: '({{name}}\.)*({{name}})'
+      scope: variable.parameter.virid
+      pop: true
