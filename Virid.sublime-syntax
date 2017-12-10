@@ -6,8 +6,8 @@ scope: source.virid
 variables:
   white: "[ \t\n\r]"
   num: '[0-9]'
-  opc: '[\-<>+*/%!^=&|]'
-  nopc: '[^\-<>+*/%!^=&|]'
+  opc: '[\-<>+*/%!^=&|;]'
+  nopc: '[^\-<>+*/%!^=&|;]'
   op: '{{opc}}+'
   sep_w: "[\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
   sep: "[ \t\n\r\\-<>+@*/%!^=&|\\[\\](){},.:;?'\"\\\\$~`#]"
@@ -100,8 +100,8 @@ contexts:
   line:
     - include: comments
     - meta_scope: meta.line.virid
-    - match: "[ \t]*;[ \t]*\n"
-      scope: punctuation.join.virid
+    - match: "[ \t]*`[ \t]*\n"
+      scope: punctuation.terminator.virid
     - match: "[ \t]*$"
       scope: meta.linebreak.virid
       pop: true
@@ -124,29 +124,31 @@ contexts:
         - include: type_notation
     - match: (?={{namec}})
       push: type_name
-    - match: ";[ \t]*\n"
+    - match: "`[ \t]*\n"
       scope: punctuation.join.virid
     - match: (?![ \t])
       pop: true
 
   type_block:
     - meta_scope: meta.type.block.virid
-    - match: '\|[ \t\r\n,;]*'
+    - match: '\|[ \t\r\n,`]*'
       scope: keyword.control.virid
       push: type_line_first
-    - match: '\\[ \t\r\n,;]*'
+    - match: '\\[ \t\r\n,`]*'
       scope: keyword.control.virid
       set: type_line_first
   type_line_first:
     - meta_scope: meta.type.line.first.virid
     - match: '\.'
       scope: punctuation.accessor.virid
+    - match: \s*$
+      set: type_line
     - match: (?={{namec}})
       push: fn_name
-    - match: "[ \t]*;[ \t]*\n"
+    - match: "[ \t]*`[ \t]*\n"
       scope: punctuation.join.virid
       set: type_line
-    - match: "[ \t]*;[ \t]*"
+    - match: "[ \t]*`[ \t]*"
       scope: punctuation.join.virid
       set: type_line
     - match: (?=.)
@@ -162,7 +164,7 @@ contexts:
         - include: type_notation
     - match: (?={{namec}})
       push: type_name
-    - match: "[ \t]*;[ \t]*\n"
+    - match: "[ \t]*`[ \t]*\n"
       scope: punctuation.join.virid
     - match: (?![ \t])
       pop: true
