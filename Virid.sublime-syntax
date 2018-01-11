@@ -44,6 +44,8 @@ contexts:
     - match: "(?=[^$@#]*(?<!{{opc}}):?=(?!{{opc}}))"
       push:
         - meta_scope: meta.lhs.name.virid
+        - match: '[ \t\r\n,`]*&[ \t\r\n,`]*(?!{{opc}})'
+          scope: keyword.control.virid, keyword.operator.virid
         - match: '\('
           scope: punctuation.section.group.begin.virid
           push:
@@ -63,16 +65,16 @@ contexts:
   type_def:
     - match: '\$\s*'
       scope: keyword.control.virid, keyword.operator.virid
-      push:
-        - meta_scope: meta.lhs.name.virid
-        - match: '\.'
-          scope: punctuation.accessor.virid
-          push: type_name
-        - match: (?={{namec}})
-          push: type_name
-        - match: (?=.)
-          set: type_args
-
+      push: type_def_name
+  type_def_name:
+    - meta_scope: meta.lhs.name.virid
+    - match: '\.'
+      scope: punctuation.accessor.virid
+      push: type_name
+    - match: (?={{namec}})
+      push: type_name
+    - match: (?=.)
+      set: type_args
   type_args:
     - meta_scope: meta.type.args.virid
     - include: comments
@@ -137,6 +139,9 @@ contexts:
     - match: '\|[ \t\r\n,`]*'
       scope: keyword.control.virid, keyword.operator.virid
       push: type_line_first
+    - match: '&[ \t\r\n,`]*'
+      scope: keyword.control.virid, keyword.operator.virid
+      set: type_def_name
     - match: (?=.)
       pop: true
   type_line_first:
